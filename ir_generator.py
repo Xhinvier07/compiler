@@ -289,10 +289,6 @@ class IRGenerator:
         left = self.visit(node.left)
         right = self.visit(node.right)
 
-        # If one of the operands is a string, handle string concatenation, bug here
-        if isinstance(left, str) and isinstance(right, str):
-            return f'{left} + {right}'  # Ensure string concatenation
-
         # Map token types to operations
         op_map = {
             TokenType.PLUS: "+",
@@ -327,7 +323,10 @@ class IRGenerator:
         return dest
     
     def visit_Literal(self, node):
-        # For literals, just return their value
+        # For string literals, add quotes
+        if isinstance(node.value, str):
+            return f'"{node.value}"'
+        # For other literals, just return their value
         return node.value
     
     def visit_Identifier(self, node):

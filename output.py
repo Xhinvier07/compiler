@@ -1,9 +1,11 @@
 # Generated Python code
 
 def main():
-    x = 5
-    y = 10
-    print("x" + "y")
+    t0 = 5 + 3
+    sum = t0
+    name = "John"
+    print(sum)
+    print(name)
 
 if __name__ == '__main__':
     main()

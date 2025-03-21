@@ -5,11 +5,11 @@ compiler = Compiler()
 
 # Compile source code
 source_code = """
+var sum = 5 + 3
+var name = "John"
+print(sum)
+print(name)
 
-var x = 5
-var y = 10
-
-print (x + y)
 """
 
 # Compile to Python

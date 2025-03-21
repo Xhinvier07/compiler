@@ -1,0 +1,30 @@
+Supported Keywords:
+var	    Declares a variable
+if	    Defines a conditional block
+else	Defines the else branch of a conditional
+loop	Defines a loop block
+while	Defines a while loop
+times	Used in loop iterations
+in	    Used in for-loops
+func	Declares a function
+return	Returns a value from a function
+print	Prints output to the console
+input	Takes user input
+
+Operators:	
++	Addition
+-	Subtraction
+*	Multiplication
+/	Division
+=	Assignment
+==	Equals
+!=	Not equals
+<	Less than
+>	Greater than
+<=	Less than or equal to
+>=	Greater than or equal to
+
+Punctuation:
+: (Colon) - Used in control structures like if and loops
+, (Comma) - Used in function parameters
+() (Parentheses) - Used in function calls and expressions

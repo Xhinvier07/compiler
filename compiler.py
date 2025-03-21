@@ -1,3 +1,5 @@
+# Vypr Compiler
+
 from lexer import Lexer
 from parser import Parser
 from semantic_analyzer import SemanticAnalyzer

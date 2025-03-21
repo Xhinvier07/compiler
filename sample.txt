@@ -1,0 +1,46 @@
+# Variables
+
+var x = 10
+var name = "Alice"
+
+# Conditional Statements:
+
+if x > 5:
+    print "x is greater than 5"
+else:
+    print "x is 5 or less"
+
+
+# Loops
+var x = 10
+loop while x > 0:
+    print x
+    x = x - 1
+
+# Times loop
+
+loop 5 times:
+    print "Hello!"
+
+# For Loops (Not Working)
+
+loop i in [1, 2, 3, 4, 5]:
+    print i
+
+# Functions
+
+func greet(name):
+    print "Hello, " + name
+
+greet("Alice")
+
+
+# User Input (Not Working)
+
+var user_input = input "Enter your name: "
+print "Hello, " + user_input
+
+# Mathematical Operations
+
+var sum = 5 + 3
+print sum  // Outputs: 8
