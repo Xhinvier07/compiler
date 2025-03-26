@@ -1,10 +1,10 @@
 # Vypr Compiler
 
-from lexer import Lexer
-from parser import Parser
-from semantic_analyzer import SemanticAnalyzer
-from ir_generator import IRGenerator
-from code_generator import CodeGenerator
+from .lexer import Lexer
+from .parser import Parser
+from .semantic_analyzer import SemanticAnalyzer
+from .ir_generator import IRGenerator
+from .code_generator import CodeGenerator
 
 class Compiler:
     def __init__(self):

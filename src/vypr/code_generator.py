@@ -1,4 +1,4 @@
-from ir_generator import LabelIR, BinaryOpIR, UnaryOpIR, AssignIR, JumpIR, ConditionalJumpIR, CallIR, ReturnIR, PrintIR, InputIR, ForLoopStartIR, ForLoopEndIR
+from .ir_generator import LabelIR, BinaryOpIR, UnaryOpIR, AssignIR, JumpIR, ConditionalJumpIR, CallIR, ReturnIR, PrintIR, InputIR, ForLoopStartIR, ForLoopEndIR
 
 
 class CodeGenerator:

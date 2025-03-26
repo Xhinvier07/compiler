@@ -1,4 +1,4 @@
-from ir_generator import LabelIR, AssignIR, BinaryOpIR, UnaryOpIR, JumpIR, ConditionalJumpIR, CallIR, ReturnIR, PrintIR, InputIR
+from .ir_generator import LabelIR, AssignIR, BinaryOpIR, UnaryOpIR, JumpIR, ConditionalJumpIR, CallIR, ReturnIR, PrintIR, InputIR
 
 class SymbolTable:
     def __init__(self, enclosing_scope=None):

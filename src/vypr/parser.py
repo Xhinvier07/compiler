@@ -1,4 +1,4 @@
-from lexer import TokenType, Token
+from .lexer import TokenType, Token
 
 class ASTNode:
     pass

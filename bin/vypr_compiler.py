@@ -4,7 +4,9 @@ import os
 import sys
 import subprocess
 import traceback
-from compiler import Compiler
+# Update import path to use the module from the src directory
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))
+from vypr.compiler import Compiler
 
 def print_header(text, width=60):
     """Print a formatted header with the given text centered."""
@@ -34,7 +36,7 @@ def main():
         sys.exit(1)
     
     # Create temp_py directory if it doesn't exist
-    temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'temp_py')
+    temp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'temp_py')
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
     
@@ -65,7 +67,7 @@ def main():
     
     # If in debug mode, dump tokens
     if args.debug:
-        from lexer import Lexer
+        from vypr.lexer import Lexer
         lexer = Lexer(source_code)
         tokens = lexer.tokenize()
         print_header("TOKEN DUMP")

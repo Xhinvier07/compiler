@@ -1,5 +1,5 @@
-from lexer import TokenType
-from parser import ReturnStatement, PropertyAccess, Literal
+from .lexer import TokenType
+from .parser import ReturnStatement, PropertyAccess, Literal
 
 class IRInstruction:
     pass
