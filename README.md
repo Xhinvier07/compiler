@@ -122,7 +122,7 @@ var d = 5 / 3    // Division
 
 String concatenation:
 ```
-var greeting = "Hello, " + name + "!"
+var greeting = "Hello, " ^ name ^ "!"
 ```
 
 Comparison operators:
@@ -153,7 +153,7 @@ For loops (iterating over items):
 ```
 var numbers = [1, 2, 3, 4, 5]
 loop num in numbers:
-    print "Number: " + num
+    print "Number: " ^ num
 ```
 
 Times loops (repeat a specific number of times):
@@ -168,7 +168,7 @@ While loops:
 ```
 var count = 0
 while count < 5:
-    print "Count: " + count
+    print "Count: " ^ count
     count = count + 1
 ```
 
@@ -178,7 +178,7 @@ Function declaration:
 
 ```
 func greet(name):
-    print "Hello, " + name + "!"
+    print "Hello, " ^ name ^ "!"
 
 func add(a, b):
     return a + b
@@ -189,7 +189,7 @@ Function calls:
 ```
 greet("World")
 var result = add(3, 5)
-print "Result: " + result
+print "Result: " ^ result
 ```
 
 #### Input and Output
@@ -205,7 +205,7 @@ Getting user input:
 ```
 var name
 input name
-print "Hello, " + name
+print "Hello, " ^ name
 ```
 
 #### Arrays and Operations
@@ -231,7 +231,7 @@ func calculateArea(length, width):
     return length * width
 
 var area = calculateArea(5, 3)
-print "The area is: " + area
+print "The area is: " ^ area
 ```
 
 #### Example 2: Working with Arrays
@@ -249,10 +249,10 @@ func calculate_average(numbers, n):
 
 var data = [0.1, 0.2, 0.3, 0.4, 0.5]
 var total = calculate_sum(data)
-print "Sum of data is: " + total
+print "Sum of data is: " ^ total
 
 var avg = calculate_average(data, 5)
-print "Average of data is: " + avg
+print "Average of data is: " ^ avg
 ```
 
 #### Example 3: User Input and Conditionals
@@ -283,7 +283,7 @@ String concatenation:
 ```
 var firstName = "John"
 var lastName = "Doe"
-var fullName = firstName + " " + lastName
+var fullName = firstName ^ " " ^ lastName
 ```
 
 #### Array Methods
@@ -293,7 +293,7 @@ Get array length:
 ```
 var fruits = ["apple", "banana", "orange"]
 var count = fruits.length
-print "Number of fruits: " + count
+print "Number of fruits: " ^ count
 ```
 
 ## Language Implementation Details
