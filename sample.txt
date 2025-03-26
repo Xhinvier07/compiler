@@ -11,9 +11,9 @@ else:
     print "x is 5 or less"
 
 
-# Loops
+# Loops - While Loop
 var x = 10
-loop while x > 0:
+while x > 0:
     print x
     x = x - 1
 
@@ -22,23 +22,50 @@ loop while x > 0:
 loop 5 times:
     print "Hello!"
 
-# For Loops (Not Working)
+# For Loops with Arrays
 
-loop i in [1, 2, 3, 4, 5]:
+var numbers = [1, 2, 3, 4, 5]
+print "Iterating through array:"
+loop i in numbers:
     print i
+
+# Array Examples
+
+var empty_array = []
+var mixed_array = ["hello", 42, true]
+var nested_array = [[1, 2], [3, 4], [5, 6]]
+
+# String Concatenation
+
+# Traditional + operator (requires both sides to be strings)
+var first_name = "Alice"
+var last_name = "Smith"
+var full_name = first_name + " " + last_name
+print full_name
+
+# New period (.) operator (auto-converts to string)
+var age = 30
+print "Name: " . first_name
+print "Age: " . age
+print "Array: " . numbers
+print "This is " . first_name . " who is " . age . " years old."
 
 # Functions
 
 func greet(name):
-    print "Hello, " + name
+    print "Hello, " . name
 
 greet("Alice")
 
+# Function with array parameter
+func calculate_sum(numbers):
+    var sum = 0
+    loop num in numbers:
+        sum = sum + num
+    return sum
 
-# User Input (Not Working)
-
-var user_input = input "Enter your name: "
-print "Hello, " + user_input
+var total = calculate_sum(numbers)
+print "Sum of numbers: " . total
 
 # Mathematical Operations
 

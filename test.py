@@ -5,10 +5,12 @@ compiler = Compiler()
 
 # Compile source code
 source_code = """
-var sum = 5 + 3
-var name = "John"
-print(sum)
-print(name)
+
+func calculateArea(length, width):
+    return length * width
+
+var area = calculateArea(5, 3)
+print "The area is: " + area
 
 """
 

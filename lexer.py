@@ -27,6 +27,7 @@ class TokenType(Enum):
     MINUS = auto()
     MULTIPLY = auto()
     DIVIDE = auto()
+    CONCAT = auto()
     ASSIGN = auto()
     EQUAL = auto()
     NOT_EQUAL = auto()
@@ -46,6 +47,10 @@ class TokenType(Enum):
     INDENT = auto()
     DEDENT = auto()
     EOF = auto()
+    
+    # Add array tokens
+    LBRACKET = auto()
+    RBRACKET = auto()
 
 class Token:
     def __init__(self, token_type, value=None, line=0, column=0):
@@ -167,8 +172,11 @@ class Lexer:
     def process_indentation(self, indent_level):
         current_indent = self.indent_stack[-1]
         
+        print(f"DEBUG: Processing indentation - level: {indent_level}, current: {current_indent}")
+        
         if indent_level > current_indent:
             self.indent_stack.append(indent_level)
+            print(f"DEBUG: Pushed indent level {indent_level} to stack")
             return Token(TokenType.INDENT, indent_level, self.line, 1)
         
         tokens = []
@@ -177,9 +185,11 @@ class Lexer:
             self.indent_stack.pop()
             tokens.append(Token(TokenType.DEDENT, None, self.line, 1))
             current_indent = self.indent_stack[-1]
+            print(f"DEBUG: Popped indent level, new current: {current_indent}")
         
         if indent_level != current_indent:
-            raise Exception(f"Indentation error at line {self.line}")
+            print(f"ERROR: Inconsistent indentation at line {self.line}: {indent_level} vs expected {current_indent}")
+            raise Exception(f"Indentation error at line {self.line}: inconsistent indentation level")
         
         return tokens if tokens else None
     
@@ -188,8 +198,13 @@ class Lexer:
             # Handle indentation when at the beginning of a new line
             if self.column == 1 and self.current_char != '\n':
                 indent_level = 0
-                while self.current_char == ' ':
-                    indent_level += 1
+                # Standardize indentation: count spaces and convert tabs to spaces
+                while self.current_char in [' ', '\t']:
+                    # Count tab as 4 spaces for indentation consistency
+                    if self.current_char == '\t':
+                        indent_level += 4
+                    else:
+                        indent_level += 1
                     self.advance()
                 
                 indentation_tokens = self.process_indentation(indent_level)
@@ -320,13 +335,179 @@ class Lexer:
 
     def tokenize(self):
         tokens = []
-        token = self.get_next_token()
+        current_indent = 0
+        indent_stack = [0]
         
-        while token.type != TokenType.EOF:
-            tokens.append(token)
-            token = self.get_next_token()
+        # Track the line number for indentation tracking
+        line_num = 1
+        line_start = True  # Flag to indicate if we're at the start of a line
         
-        tokens.append(token)  # Add EOF token
+        # Store the last non-whitespace token type
+        last_non_whitespace_token_type = None
+        
+        while self.current_char is not None:
+            # Skip whitespace, except for newlines
+            if self.current_char.isspace() and self.current_char != '\n':
+                if line_start:
+                    # Count indentation at the beginning of a line
+                    indent = 0
+                    while self.current_char is not None and self.current_char.isspace() and self.current_char != '\n':
+                        if self.current_char == '\t':
+                            indent += 4  # Count tab as 4 spaces
+                        else:
+                            indent += 1
+                        self.advance()
+                    
+                    # Process indentation change
+                    if indent > indent_stack[-1]:
+                        # Increased indentation
+                        indent_stack.append(indent)
+                        tokens.append(Token(TokenType.INDENT, indent, line_num, 1))
+                    elif indent < indent_stack[-1]:
+                        # Decreased indentation - may need multiple DEDENT tokens
+                        while indent < indent_stack[-1]:
+                            indent_stack.pop()
+                            tokens.append(Token(TokenType.DEDENT, None, line_num, 1))
+                        
+                        # Check for invalid indentation
+                        if indent != indent_stack[-1]:
+                            raise Exception(f"Inconsistent indentation at line {line_num}")
+                    
+                    # No longer at start of line
+                    line_start = False
+                    # Re-check current character since we've advanced
+                    continue
+                else:
+                    # Not at line start, skip the whitespace
+                    self.skip_whitespace()
+                continue
+            
+            # Handle comments
+            if self.current_char == '/' and self.peek() == '/':
+                self.skip_comment()
+                continue
+            
+            # Handle newlines
+            if self.current_char == '\n':
+                tokens.append(Token(TokenType.NEWLINE, None, line_num, self.column))
+                self.advance()
+                line_num += 1
+                line_start = True  # Next token will be at the start of a line
+                continue
+            
+            # After processing indentation and newlines, we're no longer at line start
+            line_start = False
+            
+            # Process other tokens
+            if self.current_char.isdigit():
+                tokens.append(self.number())
+                last_non_whitespace_token_type = TokenType.INTEGER
+            elif self.current_char in ['"', "'"]:
+                tokens.append(self.string())
+                last_non_whitespace_token_type = TokenType.STRING
+            elif self.current_char.isalpha() or self.current_char == '_':
+                token = self.identifier()
+                tokens.append(token)
+                last_non_whitespace_token_type = token.type
+            elif self.current_char == '+':
+                tokens.append(Token(TokenType.PLUS, '+', line_num, self.column))
+                last_non_whitespace_token_type = TokenType.PLUS
+                self.advance()
+            elif self.current_char == '-':
+                tokens.append(Token(TokenType.MINUS, '-', line_num, self.column))
+                last_non_whitespace_token_type = TokenType.MINUS
+                self.advance()
+            elif self.current_char == '*':
+                tokens.append(Token(TokenType.MULTIPLY, '*', line_num, self.column))
+                last_non_whitespace_token_type = TokenType.MULTIPLY
+                self.advance()
+            elif self.current_char == '/':
+                tokens.append(Token(TokenType.DIVIDE, '/', line_num, self.column))
+                last_non_whitespace_token_type = TokenType.DIVIDE
+                self.advance()
+            elif self.current_char == '.':
+                tokens.append(Token(TokenType.CONCAT, '.', line_num, self.column))
+                last_non_whitespace_token_type = TokenType.CONCAT
+                self.advance()
+            elif self.current_char == '=':
+                self.advance()
+                if self.current_char == '=':
+                    tokens.append(Token(TokenType.EQUAL, '==', line_num, self.column-1))
+                    last_non_whitespace_token_type = TokenType.EQUAL
+                    self.advance()
+                else:
+                    tokens.append(Token(TokenType.ASSIGN, '=', line_num, self.column-1))
+                    last_non_whitespace_token_type = TokenType.ASSIGN
+            elif self.current_char == '!':
+                self.advance()
+                if self.current_char == '=':
+                    tokens.append(Token(TokenType.NOT_EQUAL, '!=', line_num, self.column-1))
+                    last_non_whitespace_token_type = TokenType.NOT_EQUAL
+                    self.advance()
+                else:
+                    raise Exception(f"Invalid character '!' at line {line_num}, column {self.column}")
+            elif self.current_char == '<':
+                self.advance()
+                if self.current_char == '=':
+                    tokens.append(Token(TokenType.LESS_EQUAL, '<=', line_num, self.column-1))
+                    last_non_whitespace_token_type = TokenType.LESS_EQUAL
+                    self.advance()
+                else:
+                    tokens.append(Token(TokenType.LESS_THAN, '<', line_num, self.column-1))
+                    last_non_whitespace_token_type = TokenType.LESS_THAN
+            elif self.current_char == '>':
+                self.advance()
+                if self.current_char == '=':
+                    tokens.append(Token(TokenType.GREATER_EQUAL, '>=', line_num, self.column-1))
+                    last_non_whitespace_token_type = TokenType.GREATER_EQUAL
+                    self.advance()
+                else:
+                    tokens.append(Token(TokenType.GREATER_THAN, '>', line_num, self.column-1))
+                    last_non_whitespace_token_type = TokenType.GREATER_THAN
+            elif self.current_char == '(':
+                tokens.append(Token(TokenType.LPAREN, '(', line_num, self.column))
+                last_non_whitespace_token_type = TokenType.LPAREN
+                self.advance()
+            elif self.current_char == ')':
+                tokens.append(Token(TokenType.RPAREN, ')', line_num, self.column))
+                last_non_whitespace_token_type = TokenType.RPAREN
+                self.advance()
+            elif self.current_char == ',':
+                tokens.append(Token(TokenType.COMMA, ',', line_num, self.column))
+                last_non_whitespace_token_type = TokenType.COMMA
+                self.advance()
+            elif self.current_char == ':':
+                tokens.append(Token(TokenType.COLON, ':', line_num, self.column))
+                last_non_whitespace_token_type = TokenType.COLON
+                self.advance()
+            elif self.current_char == '[':
+                tokens.append(Token(TokenType.LBRACKET, '[', line_num, self.column))
+                last_non_whitespace_token_type = TokenType.LBRACKET
+                self.advance()
+            elif self.current_char == ']':
+                tokens.append(Token(TokenType.RBRACKET, ']', line_num, self.column))
+                last_non_whitespace_token_type = TokenType.RBRACKET
+                self.advance()
+            else:
+                raise Exception(f"Invalid character '{self.current_char}' at line {line_num}, column {self.column}")
+        
+        # Add DEDENT tokens for any open indentation levels
+        while len(indent_stack) > 1:
+            indent_stack.pop()
+            tokens.append(Token(TokenType.DEDENT, None, line_num, self.column))
+        
+        # Ensure the token list ends with a NEWLINE token before EOF
+        # This fixes the issue when files don't end with a newline
+        if tokens and tokens[-1].type != TokenType.NEWLINE:
+            # Make sure we're not inserting a newline after certain tokens 
+            # that naturally appear at the end of statements
+            if last_non_whitespace_token_type not in [TokenType.DEDENT, TokenType.NEWLINE]:
+                print(f"DEBUG: Adding missing NEWLINE token at end of file")
+                tokens.append(Token(TokenType.NEWLINE, None, line_num, self.column))
+        
+        # Add EOF token
+        tokens.append(Token(TokenType.EOF, None, line_num, self.column))
+        
         return tokens
     
     

@@ -12,7 +12,7 @@ print	Prints output to the console
 input	Takes user input
 
 Operators:	
-+	Addition
++	Addition or string concatenation (requires same types)
 -	Subtraction
 *	Multiplication
 /	Division
@@ -23,8 +23,41 @@ Operators:
 >	Greater than
 <=	Less than or equal to
 >=	Greater than or equal to
+.	String concatenation (auto-converts all types to strings)
 
 Punctuation:
 : (Colon) - Used in control structures like if and loops
-, (Comma) - Used in function parameters
+, (Comma) - Used in function parameters and array elements
 () (Parentheses) - Used in function calls and expressions
+[] (Square brackets) - Used for array literals and indexing
+
+Data Types:
+- Integers: var x = 10
+- Strings: var name = "Alice"
+- Booleans: var flag = true
+- Arrays: var numbers = [1, 2, 3, 4, 5]
+
+Loop Structures:
+1. While loop:
+   while condition:
+       // statements
+       
+2. Times loop:
+   loop 5 times:
+       // statements
+       
+3. For loop (with arrays):
+   loop item in [1, 2, 3]:
+       // statements using item
+
+String Concatenation:
+1. Using +: Only works when both sides are strings
+   var greeting = "Hello, " + "World"
+   
+2. Using . (period): Auto-converts any type to string
+   var age = 30
+   var message = "I am " . age . " years old"
+   
+   // Works with arrays too
+   var numbers = [1, 2, 3]
+   var text = "Numbers: " . numbers

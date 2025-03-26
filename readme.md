@@ -18,6 +18,8 @@ Vypr's syntax is inspired by **Python**, but introduces its own set of **keyword
 ✅ **Python-Compatible** - Generates Python code for execution.  
 ✅ **Structured Language** - Supports **variables, loops, conditionals, and functions**.  
 ✅ **Flexible Semantics** - Allows intuitive program flow with **indentation-based scoping**.  
+✅ **Arrays** - Supports array creation and iteration.
+✅ **Smart String Concatenation** - Special operator for type-safe string building.
 
 ---
 ## 📂 File Structure
@@ -47,9 +49,18 @@ else:
 
 ### 🔹 Loops
 ```plaintext
-loop while x > 0:
+// While loop
+while x > 0:
     print x
     x = x - 1
+
+// Times loop
+loop 5 times:
+    print "Hello!"
+
+// For loop with arrays
+loop i in [1, 2, 3, 4, 5]:
+    print i
 ```
 
 ### 🔹 Functions
@@ -58,6 +69,41 @@ func greet(name):
     print "Hello, " + name
 
 greet("Alice")
+```
+
+### 🔹 Arrays
+```plaintext
+var empty_array = []
+var numbers = [1, 2, 3, 4, 5]
+var mixed = ["hello", 42, true]
+var nested = [[1, 2], [3, 4], [5, 6]]
+```
+
+### 🔹 String Concatenation
+
+#### Traditional + Operator
+The `+` operator can be used for string concatenation, but both operands must be strings:
+```plaintext
+var name = "John"
+var greeting = "Hello, " + name  // Works because both are strings
+```
+
+However, this can cause errors when mixing types:
+```plaintext
+var age = 30
+var message = "Age: " + age  // Error in Python without conversion
+```
+
+#### Period (.) Operator
+The `.` operator automatically converts all operands to strings before concatenation:
+```plaintext
+var age = 30
+var message = "Age: " . age  // Works! Converts age to string first
+
+var numbers = [1, 2, 3]
+print "Array: " . numbers    // Works with any type, including arrays
+
+var mixed = "Answer: " . 42 . " is the meaning of life"  // Handles multiple concatenations
 ```
 
 ---

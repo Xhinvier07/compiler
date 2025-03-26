@@ -1,4 +1,5 @@
 from lexer import TokenType
+from parser import ReturnStatement
 
 class IRInstruction:
     pass
@@ -134,18 +135,44 @@ class IRGenerator:
         raise Exception(f"No visit method for {type(node).__name__}")
     
     def visit_Program(self, node):
-        # Create main function
+        # First, collect function declarations and separate them from other statements
+        function_declarations = []
+        main_statements = []
+        
+        for statement in node.statements:
+            if hasattr(statement, '__class__') and statement.__class__.__name__ == 'FunctionDeclaration':
+                function_declarations.append(statement)
+            else:
+                main_statements.append(statement)
+        
+        print(f"DEBUG: Found {len(function_declarations)} function declarations")
+        print(f"DEBUG: Found {len(main_statements)} main statements")
+        
+        # Process function declarations first
+        for func_decl in function_declarations:
+            self.visit_FunctionDeclaration(func_decl)
+        
+        # Create main function and process main statements
         self.functions["main"] = FunctionIR("main", [])
         self.current_function = self.functions["main"]
         
-        for statement in node.statements:
+        print(f"DEBUG: Processing main statements")
+        for i, statement in enumerate(main_statements):
+            print(f"DEBUG: Processing main statement {i}: {statement.__class__.__name__}")
             self.visit(statement)
+        
+        # Add implicit return if needed
+        last_instr = self.current_function.instructions[-1] if self.current_function.instructions else None
+        if not isinstance(last_instr, ReturnIR):
+            self.add_instruction(ReturnIR())
         
         return self.functions
     
     def visit_VarDeclaration(self, node):
+        print(f"DEBUG: Processing var declaration: {node.name}")
         if node.initial_value:
             value = self.visit(node.initial_value)
+            print(f"DEBUG: Adding instruction: {node.name} = {value}")
             self.add_instruction(AssignIR(node.name, value))
     
     def visit_Assignment(self, node):
@@ -230,25 +257,28 @@ class IRGenerator:
         self.add_instruction(LabelIR(end_label))
 
     def visit_ForLoop(self, node):
-        iterator = node.variable
+        # Get the iterable expression
         iterable = self.visit(node.iterable)
-
-        start_label = self.new_label()
-        end_label = self.new_label()
-
-        self.add_instruction(LabelIR(start_label))
-
-        condition = self.new_temp()
-        self.add_instruction(BinaryOpIR("in", condition, iterator, iterable))
-        self.add_instruction(ConditionalJumpIR(condition, start_label, end_label))
-
+        
+        # Generate unique variable name for the loop counter
+        loop_var = node.variable
+        
+        # Use ForLoopStartIR and ForLoopEndIR for cleaner code generation
+        self.add_instruction(ForLoopStartIR(loop_var, iterable))
+        
+        # Process the loop body
         for statement in node.body:
             self.visit(statement)
-
-        self.add_instruction(JumpIR(start_label))
-        self.add_instruction(LabelIR(end_label))
+        
+        # Add loop footer
+        self.add_instruction(ForLoopEndIR())
     
     def visit_FunctionDeclaration(self, node):
+        # Debug print
+        print(f"DEBUG: Processing function: {node.name} with {len(node.body)} statements")
+        for idx, stmt in enumerate(node.body):
+            print(f"DEBUG:  Statement {idx}: {stmt.__class__.__name__}")
+        
         # Save current function
         prev_function = self.current_function
         
@@ -256,14 +286,25 @@ class IRGenerator:
         self.functions[node.name] = FunctionIR(node.name, node.parameters)
         self.current_function = self.functions[node.name]
         
-        # Generate function body
+        # Generate function body - only include statements that were explicitly parsed as part of the function
+        # The return statement is typically the last statement in a function
         for statement in node.body:
+            # If we find a return statement, process it and then break
+            # This ensures we don't include statements after the return
             self.visit(statement)
+            if isinstance(statement, ReturnStatement):
+                print(f"DEBUG: Found return statement, stopping function body")
+                break
         
         # Add implicit return if needed
         last_instr = self.current_function.instructions[-1] if self.current_function.instructions else None
         if not isinstance(last_instr, ReturnIR):
             self.add_instruction(ReturnIR())
+        
+        # Debug print function instructions
+        print(f"DEBUG: Function {node.name} has {len(self.current_function.instructions)} instructions")
+        for idx, instr in enumerate(self.current_function.instructions):
+            print(f"DEBUG:  Instruction {idx}: {instr}")
         
         # Restore previous function
         self.current_function = prev_function
@@ -277,6 +318,7 @@ class IRGenerator:
     
     def visit_PrintStatement(self, node):
         value = self.visit(node.expression)
+        # If the value is an array or other complex type, ensure it's printed correctly
         self.add_instruction(PrintIR(value))
     
     def visit_InputStatement(self, node):
@@ -295,6 +337,7 @@ class IRGenerator:
             TokenType.MINUS: "-",
             TokenType.MULTIPLY: "*",
             TokenType.DIVIDE: "/",
+            TokenType.CONCAT: "+",  # Use + in Python, but with string conversion
             TokenType.EQUAL: "==",
             TokenType.NOT_EQUAL: "!=",
             TokenType.LESS_THAN: "<",
@@ -305,7 +348,15 @@ class IRGenerator:
 
         op = op_map.get(node.operator.type, str(node.operator.type))
         dest = self.new_temp()
-        self.add_instruction(BinaryOpIR(op, dest, left, right))
+        
+        # If this is string concatenation with the . operator
+        if node.operator.type == TokenType.CONCAT:
+            # Convert both operands to strings
+            self.add_instruction(BinaryOpIR("+", dest, f"str({left})", f"str({right})"))
+        else:
+            # Regular binary operation
+            self.add_instruction(BinaryOpIR(op, dest, left, right))
+        
         return dest
 
     def visit_UnaryOperation(self, node):
@@ -339,7 +390,32 @@ class IRGenerator:
         self.add_instruction(CallIR(node.function, args, dest))
         return dest
     
+    def visit_ArrayLiteral(self, node):
+        # Problem: This might be trying to join integers with strings
+        elements = [self.visit(element) for element in node.elements]
+        
+        # Make sure all elements are properly handled as values, not joined as strings
+        element_str = []
+        for element in elements:
+            # Ensure each element is properly processed
+            element_str.append(str(element))
+        
+        # Return the array literal
+        return f"[{', '.join(element_str)}]"
+    
     def generate(self, ast):
         return self.visit(ast)
+
+class ForLoopStartIR(IRInstruction):
+    def __init__(self, var, iterable):
+        self.var = var
+        self.iterable = iterable
+    
+    def __str__(self):
+        return f"FOR {self.var} IN {self.iterable}"
+
+class ForLoopEndIR(IRInstruction):
+    def __str__(self):
+        return "END FOR"
 
 

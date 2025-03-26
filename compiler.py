@@ -8,7 +8,7 @@ from code_generator import CodeGenerator
 
 class Compiler:
     def __init__(self):
-        pass
+        self.last_error = None
     
     def compile(self, source_code, output_filename=None):
         try:
@@ -19,14 +19,25 @@ class Compiler:
             
             # Step 2: Syntax Analysis
             parser = Parser(tokens)
-            ast = parser.parse()
-            print("Syntax analysis completed successfully.")
+            try:
+                ast = parser.parse()
+                print("Syntax analysis completed successfully.")
+            except Exception as e:
+                error_msg = str(e)
+                # Add helpful hint for indentation errors
+                if "Expected TokenType.INDENT" in error_msg or "Indentation error" in error_msg:
+                    self.last_error = f"{error_msg}\nHint: Check your indentation. The compiler uses spaces for indentation (tabs are converted to 4 spaces)."
+                else:
+                    self.last_error = error_msg
+                print(f"Syntax analysis failed: {self.last_error}")
+                return False
             
             # Step 3: Semantic Analysis
             semantic_analyzer = SemanticAnalyzer()
             success, errors = semantic_analyzer.analyze(ast)
             
             if not success:
+                self.last_error = f"Semantic analysis failed: {errors}"
                 print("Semantic analysis failed with errors:")
                 for error in errors:
                     print(f"  - {error}")
@@ -53,8 +64,12 @@ class Compiler:
             return output_code
         
         except Exception as e:
+            self.last_error = str(e)
             print(f"Compilation error: {e}")
             return None
+    
+    def get_last_error(self):
+        return self.last_error
 
 if __name__ == "__main__":
     compiler = Compiler()
