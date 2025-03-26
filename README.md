@@ -34,11 +34,18 @@ compiler/
 
 ## Usage
 
-To compile and run a Vypr program:
+### Running Vypr Programs on Windows
 
-```bash
-# From the root directory of the project
-vypr.bat examples/test_verbose.vy
+To compile and run a Vypr program in the Command Prompt:
+
+```cmd
+vypr.bat examples\test_verbose.vy
+```
+
+In PowerShell, you need to use the `.\` prefix with the full filename:
+
+```powershell
+.\vypr.bat examples\test_verbose.vy
 ```
 
 ### Command-line Options
@@ -49,8 +56,32 @@ vypr.bat examples/test_verbose.vy
 - `-debug`: Show debug information including tokens
 
 Example with options:
-```bash
-vypr.bat examples/test_verbose.vy -keep -verbose
+```powershell
+.\vypr.bat examples\test_verbose.vy -keep -verbose
+```
+
+### Setting Up a Simplified Command (Optional)
+
+To run Vypr code without typing the `.bat` extension, you can create an alias in your PowerShell profile:
+
+1. Create/edit your PowerShell profile:
+   ```powershell
+   notepad $PROFILE
+   ```
+
+2. Add this line to your profile:
+   ```powershell
+   function vypr { .\vypr.bat $args }
+   ```
+
+3. Restart PowerShell or run:
+   ```powershell
+   . $PROFILE
+   ```
+
+This allows you to use a simpler command:
+```powershell
+vypr examples\test_verbose.vy
 ```
 
 ## Vypr Language Documentation

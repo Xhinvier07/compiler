@@ -14,6 +14,7 @@ set KEEP_FLAG=
 set VERBOSE_FLAG=
 set OUTPUT_FILE=
 set INPUT_FILE=
+set CURRENT_DIR=%CD%
 
 REM Process command line arguments
 :parse_args
@@ -47,7 +48,14 @@ if "!INPUT_FILE!"=="" (
     exit /b 1
 )
 
-REM Run the Python compiler with the parsed arguments - Updated path to point to bin directory
-python %~dp0bin\vypr_compiler.py !INPUT_FILE! !KEEP_FLAG! !VERBOSE_FLAG! !OUTPUT_FILE!
+REM Use absolute path to compiler script
+set COMPILER_PATH=%CURRENT_DIR%\bin\vypr_compiler.py
+
+REM Debug info
+echo Using compiler at: %COMPILER_PATH%
+echo Input file: %INPUT_FILE%
+
+REM Run the Python compiler with the parsed arguments
+python "%COMPILER_PATH%" "%INPUT_FILE%" !KEEP_FLAG! !VERBOSE_FLAG! !OUTPUT_FILE!
 
 exit /b %ERRORLEVEL% 
