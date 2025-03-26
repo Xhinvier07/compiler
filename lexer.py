@@ -27,7 +27,7 @@ class TokenType(Enum):
     MINUS = auto()
     MULTIPLY = auto()
     DIVIDE = auto()
-    CONCAT = auto()
+    CONCAT = auto()  # Now using ^ for concatenation
     ASSIGN = auto()
     EQUAL = auto()
     NOT_EQUAL = auto()
@@ -41,6 +41,7 @@ class TokenType(Enum):
     RPAREN = auto()
     COMMA = auto()
     COLON = auto()
+    DOT = auto()  # Used exclusively for property access
     
     # Special
     NEWLINE = auto()
@@ -322,6 +323,17 @@ class Lexer:
                 self.advance()
                 return token
             
+            # Handle the dot token
+            if self.current_char == '.':
+                token = Token(TokenType.DOT, '.', self.line, self.column)
+                self.advance()
+                return token
+            
+            if self.current_char == '^':
+                token = Token(TokenType.CONCAT, '^', self.line, self.column)
+                self.advance()
+                return token
+            
             # If we get here, we have an invalid character
             raise Exception(f"Invalid character '{self.current_char}' at line {self.line}, column {self.column}")
 
@@ -410,6 +422,7 @@ class Lexer:
                 tokens.append(token)
                 last_non_whitespace_token_type = token.type
             elif self.current_char == '+':
+                # Use PLUS for both arithmetic and string concatenation
                 tokens.append(Token(TokenType.PLUS, '+', line_num, self.column))
                 last_non_whitespace_token_type = TokenType.PLUS
                 self.advance()
@@ -426,8 +439,8 @@ class Lexer:
                 last_non_whitespace_token_type = TokenType.DIVIDE
                 self.advance()
             elif self.current_char == '.':
-                tokens.append(Token(TokenType.CONCAT, '.', line_num, self.column))
-                last_non_whitespace_token_type = TokenType.CONCAT
+                tokens.append(Token(TokenType.DOT, '.', line_num, self.column))
+                last_non_whitespace_token_type = TokenType.DOT
                 self.advance()
             elif self.current_char == '=':
                 self.advance()
@@ -487,6 +500,10 @@ class Lexer:
             elif self.current_char == ']':
                 tokens.append(Token(TokenType.RBRACKET, ']', line_num, self.column))
                 last_non_whitespace_token_type = TokenType.RBRACKET
+                self.advance()
+            elif self.current_char == '^':
+                tokens.append(Token(TokenType.CONCAT, '^', line_num, self.column))
+                last_non_whitespace_token_type = TokenType.CONCAT
                 self.advance()
             else:
                 raise Exception(f"Invalid character '{self.current_char}' at line {line_num}, column {self.column}")

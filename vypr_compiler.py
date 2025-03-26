@@ -6,6 +6,12 @@ import subprocess
 import traceback
 from compiler import Compiler
 
+def print_header(text, width=60):
+    """Print a formatted header with the given text centered."""
+    print("\n" + "="*width)
+    print(" " * ((width - len(text)) // 2) + text)
+    print("="*width + "\n")
+
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description='Vypr Language Compiler')
@@ -47,6 +53,13 @@ def main():
         print(f"Error reading input file: {e}")
         sys.exit(1)
     
+    if args.verbose:
+        print_header(f"VYPR COMPILER: {args.input_file}")
+        print(f"Input file: {args.input_file}")
+        print(f"Output file: {output_file}")
+        print(f"Source code size: {len(source_code)} bytes, {source_code.count(chr(10))+1} lines")
+        print("")
+    
     # Initialize and run the compiler
     compiler = Compiler()
     
@@ -55,13 +68,13 @@ def main():
         from lexer import Lexer
         lexer = Lexer(source_code)
         tokens = lexer.tokenize()
-        print("=== TOKENS ===")
+        print_header("TOKEN DUMP")
         for token in tokens:
             print(token)
-        print("=== END TOKENS ===")
+        print("\n" + "-"*60)
     
     try:
-        # Capture and redirect compiler output if not verbose
+        # Capture and redirect compiler output if not verbose and not debug
         if not args.verbose and not args.debug:
             original_print = print
             
@@ -72,8 +85,8 @@ def main():
             import builtins
             builtins.print = filtered_print
         
-        # Compile the code
-        result = compiler.compile(source_code, output_file)
+        # Compile the code, passing verbose flag
+        result = compiler.compile(source_code, output_file, verbose=args.verbose)
         
         # Restore original print function if it was overridden
         if not args.verbose and not args.debug:
@@ -85,13 +98,20 @@ def main():
         
         # Run the compiled Python file
         try:
-            print(f"Running compiled code from {output_file}...")
+            if args.verbose:
+                print_header("EXECUTION")
+                print(f"Running compiled code from {output_file}...")
+            
             print("\n" + "="*60 + "\n" + " "*20 + "PROGRAM OUTPUT" + " "*20 + "\n" + "="*60 + "\n")
             
             subprocess.run([sys.executable, output_file], check=True)
             
             print("\n" + "="*60 + "\n" + " "*20 + "END OUTPUT" + " "*22 + "\n" + "="*60)
-            print("\nExecution completed.")
+            
+            if args.verbose:
+                print("\nExecution completed successfully.")
+            else:
+                print("\nExecution completed.")
         except subprocess.CalledProcessError as e:
             print("\n" + "="*60)
             print(f"Error executing compiled code: {e}")
@@ -101,11 +121,18 @@ def main():
         if not args.keep:
             try:
                 os.remove(output_file)
-                print(f"Temporary Python file deleted.")
+                if args.verbose:
+                    print("\nTemporary Python file deleted.")
             except Exception as e:
                 print(f"Warning: Could not delete output file: {e}")
         else:
-            print(f"Output Python file preserved at: {output_file}")
+            if args.verbose:
+                print("\nOutput Python file preserved at: " + output_file)
+            else:
+                print(f"Output Python file preserved at: {output_file}")
+        
+        if args.verbose:
+            print_header("COMPILATION COMPLETE")
     
     except Exception as e:
         print(f"Compilation error: {e}")

@@ -99,6 +99,11 @@ class ArrayLiteral(Expression):
     def __init__(self, elements):
         self.elements = elements
 
+class PropertyAccess(Expression):
+    def __init__(self, object_expr, property_name):
+        self.object_expr = object_expr
+        self.property_name = property_name
+
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -388,16 +393,25 @@ class Parser:
                 self.eat(self.current_token.type)
                 continue
             
-            print(f"DEBUG: Parsing statement in function body, token: {self.current_token.type}")
-            statement = self.statement()
-            body.append(statement)
-            print(f"DEBUG: Added statement to function body: {statement.__class__.__name__}")
-            
-            # If the current statement was a return, we've reached the end of the function
-            if isinstance(statement, ReturnStatement):
-                print(f"DEBUG: Found return statement, ending function body")
-                has_return = True
-                break
+            try:
+                print(f"DEBUG: Parsing statement in function body, token: {self.current_token.type}")
+                statement = self.statement()
+                body.append(statement)
+                print(f"DEBUG: Added statement to function body: {statement.__class__.__name__}")
+                
+                # If the current statement was a return, we've reached the end of the function
+                if isinstance(statement, ReturnStatement):
+                    print(f"DEBUG: Found return statement, ending function body")
+                    has_return = True
+                    break
+            except Exception as e:
+                print(f"ERROR in function body parsing: {e}")
+                # Skip problematic token and try to continue
+                self.pos += 1
+                if self.pos < len(self.tokens):
+                    self.current_token = self.tokens[self.pos]
+                else:
+                    break
             
             # If we've hit something that looks like it's outside the function, stop
             if self.current_token.type in top_level_tokens:
@@ -517,7 +531,7 @@ class Parser:
                | LPAREN expression RPAREN
                | array_literal
                | function_call
-               | IDENTIFIER
+               | IDENTIFIER (DOT IDENTIFIER)*
         """
         # Skip any unexpected newlines
         while self.current_token.type == TokenType.NEWLINE:
@@ -564,7 +578,21 @@ class Parser:
                 return self.function_call()
             else:
                 self.eat(TokenType.IDENTIFIER)
-                return Identifier(token.value)
+                
+                # Check if it's a property access (using dot notation)
+                expr = Identifier(token.value)
+                
+                while self.current_token.type == TokenType.DOT:
+                    self.eat(TokenType.DOT)
+                    
+                    if self.current_token.type == TokenType.IDENTIFIER:
+                        property_name = self.current_token.value
+                        self.eat(TokenType.IDENTIFIER)
+                        expr = PropertyAccess(expr, property_name)
+                    else:
+                        self.error(f"Expected property name, got {self.current_token.type}")
+                
+                return expr
 
         self.error(f"Invalid factor: {token}")
     

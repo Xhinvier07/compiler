@@ -1,5 +1,5 @@
 from lexer import TokenType
-from parser import ReturnStatement
+from parser import ReturnStatement, PropertyAccess, Literal
 
 class IRInstruction:
     pass
@@ -349,8 +349,18 @@ class IRGenerator:
         op = op_map.get(node.operator.type, str(node.operator.type))
         dest = self.new_temp()
         
-        # If this is string concatenation with the . operator
-        if node.operator.type == TokenType.CONCAT:
+        # Check if this is a string concatenation using + operator
+        if node.operator.type == TokenType.PLUS:
+            # If either operand is a string literal, treat as string concatenation
+            if (isinstance(node.left, Literal) and node.left.type == "string") or \
+               (isinstance(node.right, Literal) and node.right.type == "string"):
+                # Convert both operands to strings for safe concatenation
+                self.add_instruction(BinaryOpIR("+", dest, f"str({left})", f"str({right})"))
+            else:
+                # Regular binary operation
+                self.add_instruction(BinaryOpIR(op, dest, left, right))
+        # Backward compatibility with CONCAT token (if still used)
+        elif node.operator.type == TokenType.CONCAT:
             # Convert both operands to strings
             self.add_instruction(BinaryOpIR("+", dest, f"str({left})", f"str({right})"))
         else:
@@ -402,6 +412,23 @@ class IRGenerator:
         
         # Return the array literal
         return f"[{', '.join(element_str)}]"
+    
+    def visit_PropertyAccess(self, node):
+        # First visit the object expression
+        obj = self.visit(node.object_expr)
+        
+        # Create a temporary variable for the property access
+        dest = self.new_temp()
+        
+        # Handle special properties like 'length' for arrays
+        if node.property_name == 'length':
+            # For length property, we can use Python's len() function
+            self.add_instruction(AssignIR(dest, f"len({obj})"))
+        else:
+            # For other properties, use Python's attribute access
+            self.add_instruction(AssignIR(dest, f"{obj}.{node.property_name}"))
+        
+        return dest
     
     def generate(self, ast):
         return self.visit(ast)

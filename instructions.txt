@@ -12,7 +12,7 @@ print	Prints output to the console
 input	Takes user input
 
 Operators:	
-+	Addition or string concatenation (requires same types)
++	Addition
 -	Subtraction
 *	Multiplication
 /	Division
@@ -23,7 +23,8 @@ Operators:
 >	Greater than
 <=	Less than or equal to
 >=	Greater than or equal to
-.	String concatenation (auto-converts all types to strings)
+^	String concatenation (auto-converts all types to strings)
+.	Property access (e.g., array.length)
 
 Punctuation:
 : (Colon) - Used in control structures like if and loops
@@ -54,10 +55,10 @@ String Concatenation:
 1. Using +: Only works when both sides are strings
    var greeting = "Hello, " + "World"
    
-2. Using . (period): Auto-converts any type to string
+2. Using ^ (caret): Auto-converts any type to string
    var age = 30
-   var message = "I am " . age . " years old"
+   var message = "I am " ^ age ^ " years old"
    
    // Works with arrays too
    var numbers = [1, 2, 3]
-   var text = "Numbers: " . numbers
+   var text = "Numbers: " ^ numbers
