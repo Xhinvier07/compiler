@@ -75,52 +75,170 @@ class CodeGenerator:
         # Track indent level properly
         indent_level = 1
         
-        for instr in func.instructions:
-            # Skip label definitions
+        # Create label/instruction position mapping
+        label_positions = {}
+        for i, instr in enumerate(func.instructions):
             if isinstance(instr, LabelIR):
-                continue
+                label_positions[instr.name] = i
+        
+        i = 0
+        while i < len(func.instructions):
+            instr = func.instructions[i]
             
             # Get proper indentation
             indent = "    " * indent_level
             
-            # Process different instruction types
-            if isinstance(instr, BinaryOpIR):
-                code_lines.append(f"{indent}{instr.dest} = {instr.left} {instr.op} {instr.right}")
+            # Process labels (for jumps and conditional jumps)
+            if isinstance(instr, LabelIR):
+                i += 1
+                continue
             
-            elif isinstance(instr, UnaryOpIR):
-                code_lines.append(f"{indent}{instr.dest} = {instr.op}{instr.operand}")
+            # Handle conditional jumps (if statements)
+            if isinstance(instr, ConditionalJumpIR):
+                if instr.false_label:  # if-else structure
+                    # This is a full if-else with true and false branches
+                    true_pos = label_positions.get(instr.true_label)
+                    false_pos = label_positions.get(instr.false_label)
+                    
+                    if true_pos is not None and false_pos is not None:
+                        # Find the end label by looking for a jump at the end of the true block
+                        end_label = None
+                        for j in range(false_pos - 1, true_pos, -1):
+                            if isinstance(func.instructions[j], JumpIR):
+                                end_label = func.instructions[j].label
+                                break
+                        
+                        # Write the if condition
+                        code_lines.append(f"{indent}if {instr.condition}:")
+                        indent_level += 1
+                        
+                        # Process the true branch (skip the label at the start)
+                        j = true_pos + 1  # Skip the label
+                        while j < len(func.instructions) and j < false_pos:
+                            # Skip jump to end label - it's implicit in Python
+                            if isinstance(func.instructions[j], JumpIR) and func.instructions[j].label == end_label:
+                                j += 1
+                                continue
+                                
+                            inner_instr = func.instructions[j]
+                            # Don't recursively handle more jumps - just the immediate code
+                            if not isinstance(inner_instr, (JumpIR, ConditionalJumpIR, LabelIR)):
+                                self._process_single_instruction(inner_instr, code_lines, indent_level)
+                            j += 1
+                        
+                        # End of true block, back to if level to add else
+                        indent_level -= 1
+                        
+                        # Add the else clause
+                        code_lines.append(f"{indent}else:")
+                        indent_level += 1
+                        
+                        # Process the false branch (skip the label at the start)
+                        end_pos = len(func.instructions)
+                        if end_label and end_label in label_positions:
+                            end_pos = label_positions[end_label]
+                            
+                        j = false_pos + 1  # Skip the label
+                        while j < end_pos:
+                            inner_instr = func.instructions[j]
+                            # Don't recursively handle more jumps - just the immediate code
+                            if not isinstance(inner_instr, (JumpIR, ConditionalJumpIR, LabelIR)):
+                                self._process_single_instruction(inner_instr, code_lines, indent_level)
+                            j += 1
+                        
+                        # Back to normal indent level
+                        indent_level -= 1
+                        
+                        # Skip ahead in processing to after the end label
+                        i = end_pos + 1
+                        continue
+                else:  # if-only structure without an else
+                    # This is just an if without an else
+                    true_pos = label_positions.get(instr.true_label)
+                    if true_pos is not None:
+                        # Find the end - all instructions until the next label
+                        end_pos = len(func.instructions)
+                        for j in range(true_pos + 1, len(func.instructions)):
+                            if isinstance(func.instructions[j], LabelIR) and func.instructions[j].name != instr.true_label:
+                                end_pos = j
+                                break
+                        
+                        # Write the if condition
+                        code_lines.append(f"{indent}if {instr.condition}:")
+                        indent_level += 1
+                        
+                        # Process the true branch
+                        j = true_pos + 1  # Skip the label
+                        while j < end_pos:
+                            inner_instr = func.instructions[j]
+                            # Don't handle more jumps - just the immediate code
+                            if not isinstance(inner_instr, (JumpIR, ConditionalJumpIR, LabelIR)):
+                                self._process_single_instruction(inner_instr, code_lines, indent_level)
+                            j += 1
+                        
+                        # Back to normal indent level
+                        indent_level -= 1
+                        
+                        # Skip ahead in processing
+                        i = end_pos
+                        continue
             
-            elif isinstance(instr, AssignIR):
-                code_lines.append(f"{indent}{instr.dest} = {instr.value}")
+            # Handle unconditional jumps (loop back, etc.)
+            elif isinstance(instr, JumpIR):
+                # Skip for now - loops will handle their own jumps
+                i += 1
+                continue
+                
+            # Process regular instructions
+            elif not isinstance(instr, (LabelIR, JumpIR, ConditionalJumpIR)):
+                self._process_single_instruction(instr, code_lines, indent_level)
             
-            elif isinstance(instr, ReturnIR):
-                if instr.value:
-                    code_lines.append(f"{indent}return {instr.value}")
-                else:
-                    code_lines.append(f"{indent}return")
-            
-            elif isinstance(instr, CallIR):
-                args_str = ", ".join(map(str, instr.args))
-                if instr.dest:
-                    code_lines.append(f"{indent}{instr.dest} = {instr.function}({args_str})")
-                else:
-                    code_lines.append(f"{indent}{instr.function}({args_str})")
-            
-            elif isinstance(instr, PrintIR):
-                code_lines.append(f"{indent}print({instr.value})")
-            
-            elif isinstance(instr, ForLoopStartIR):
-                code_lines.append(f"{indent}for {instr.var} in {instr.iterable}:")
-                indent_level += 1
-            
-            elif isinstance(instr, ForLoopEndIR):
-                indent_level -= 1
-                # Make sure we don't go below 1 (function body indentation)
-                indent_level = max(1, indent_level)
+            i += 1
         
         # Add pass if no instructions were processed
         if len(code_lines) == 1:  # Only the function header was added
             code_lines.append(f"    pass")
+    
+    def _process_single_instruction(self, instr, code_lines, indent_level):
+        """Process a single non-jump instruction and add it to code_lines"""
+        indent = "    " * indent_level
+        
+        if isinstance(instr, BinaryOpIR):
+            code_lines.append(f"{indent}{instr.dest} = {instr.left} {instr.op} {instr.right}")
+        
+        elif isinstance(instr, UnaryOpIR):
+            code_lines.append(f"{indent}{instr.dest} = {instr.op}{instr.operand}")
+        
+        elif isinstance(instr, AssignIR):
+            code_lines.append(f"{indent}{instr.dest} = {instr.value}")
+        
+        elif isinstance(instr, ReturnIR):
+            if instr.value:
+                code_lines.append(f"{indent}return {instr.value}")
+            else:
+                code_lines.append(f"{indent}return")
+        
+        elif isinstance(instr, CallIR):
+            args_str = ", ".join(map(str, instr.args))
+            if instr.dest:
+                code_lines.append(f"{indent}{instr.dest} = {instr.function}({args_str})")
+            else:
+                code_lines.append(f"{indent}{instr.function}({args_str})")
+        
+        elif isinstance(instr, PrintIR):
+            code_lines.append(f"{indent}print({instr.value})")
+        
+        elif isinstance(instr, InputIR):
+            code_lines.append(f"{indent}{instr.dest} = input()")
+        
+        elif isinstance(instr, ForLoopStartIR):
+            code_lines.append(f"{indent}for {instr.var} in {instr.iterable}:")
+            indent_level += 1
+        
+        elif isinstance(instr, ForLoopEndIR):
+            indent_level -= 1
+            # Make sure we don't go below 1
+            indent_level = max(1, indent_level)
     
     def generate_function_code(self, func):
         """This method is no longer used but kept for compatibility"""

@@ -7,29 +7,33 @@ A simple programming language compiler that translates Vypr code (.vy files) to 
 ```
 compiler/
 │
-├── bin/               # Executable scripts
-│   └── vypr_compiler.py # Main compiler script
+├── bin/                      # Executable scripts
+│   └── vypr_compiler.py      # Main compiler script
 │
-├── src/               # Source code
-│   └── vypr/          # Vypr language compiler components
-│       ├── lexer.py   # Lexical analyzer
-│       ├── parser.py  # Syntax analyzer
-│       ├── semantic_analyzer.py # Semantic analyzer
-│       ├── ir_generator.py     # Intermediate code generator
-│       ├── code_generator.py   # Python code generator
-│       └── compiler.py        # Main compiler class
+├── src/                      # Source code
+│   └── vypr/                 # Vypr language compiler components
+│       ├── __init__.py       # Package definition
+│       ├── lexer.py          # Lexical analyzer (tokenization)
+│       ├── parser.py         # Syntax analyzer (AST generation)
+│       ├── semantic_analyzer.py # Semantic analyzer (validation)
+│       ├── ir_generator.py   # Intermediate code generator
+│       ├── code_generator.py # Python code generator  
+│       └── compiler.py       # Main compiler class
 │
-├── examples/          # Example Vypr programs
-│   ├── test_verbose.vy
-│   ├── test_dot_concat.vy
-│   └── fixed.vy
+├── examples/                 # Example Vypr programs
+│   ├── input.vy              # Current example with if-else
+│   ├── test_verbose.vy       # Calculation example with output
+│   ├── test_dot_concat.vy    # String concatenation examples
+│   └── fixed.vy              # Simple program example
 │
-├── tests/             # Test files
-│   └── test.py        # Basic compiler test
+├── tests/                    # Test files
+│   └── test.py               # Basic compiler test
 │
-├── temp_py/           # Temporary Python output files
+├── temp_py/                  # Temporary Python output files
 │
-└── vypr.bat           # Windows batch script to run the compiler
+├── vypr.bat                  # Windows batch script to run the compiler
+├── README.md                 # This documentation file
+└── LICENSE                   # License information
 ```
 
 ## Usage
