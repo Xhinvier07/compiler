@@ -21,10 +21,7 @@ compiler/
 │       └── compiler.py       # Main compiler class
 │
 ├── examples/                 # Example Vypr programs
-│   ├── input.vy              # Current example with if-else
-│   ├── test_verbose.vy       # Calculation example with output
-│   ├── test_dot_concat.vy    # String concatenation examples
-│   └── fixed.vy              # Simple program example
+│   └── sample.vy             # Simple program example
 │
 ├── tests/                    # Test files
 │   └── test.py               # Basic compiler test
