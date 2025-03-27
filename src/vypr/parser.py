@@ -130,29 +130,40 @@ class Parser:
     
     def program(self):
         """program : statement_list"""
+        print("DEBUG: Parsing program starting")
         statements = self.statement_list()
+        print(f"DEBUG: Parsing program completed with {len(statements)} top-level statements")
+        # Print the types of statements for debugging
+        for i, stmt in enumerate(statements):
+            print(f"DEBUG: Top-level statement {i}: {type(stmt).__name__}")
         return Program(statements)
 
     def statement_list(self):
         """statement_list : (statement NEWLINE)*"""
+        print("DEBUG: Parsing statement_list starting")
         statements = []
 
         # Skip leading newlines
         while self.current_token.type == TokenType.NEWLINE:
+            print("DEBUG: Skipping leading newline")
             self.eat(TokenType.NEWLINE)
 
         while self.current_token.type != TokenType.EOF:
             # Stop if we encounter a DEDENT token, which indicates the end of a block
             if self.current_token.type == TokenType.DEDENT:
+                print("DEBUG: Found DEDENT token, ending statement_list")
                 break
                 
             # Process the statement
+            print(f"DEBUG: Processing statement with token: {self.current_token}")
             statements.append(self.statement())
 
             # Ensure that statements are separated by newlines
             while self.current_token.type == TokenType.NEWLINE:
+                print("DEBUG: Consuming newline after statement")
                 self.eat(TokenType.NEWLINE)
 
+        print(f"DEBUG: Finished parsing statement_list, found {len(statements)} statements")
         return statements
 
     def statement(self):
@@ -205,12 +216,8 @@ class Parser:
             # We don't advance the token pointer as that would go past EOF
             print(f"DEBUG: End of file reached without newline after statement")
             pass
-        elif self.current_token.type == TokenType.DEDENT:
-            # DEDENT token is also acceptable at the end of a statement
-            print(f"DEBUG: DEDENT token found after statement, consuming it")
-            self.eat(TokenType.DEDENT)
         else:
-            self.error(f"Expected newline, EOF, or DEDENT, got {self.current_token.type}")
+            self.error(f"Expected newline or EOF, got {self.current_token.type}")
     
     def var_declaration(self):
         """var_declaration : VAR IDENTIFIER (ASSIGN expression)? NEWLINE"""
@@ -477,9 +484,22 @@ class Parser:
     
     def print_statement(self):
         """print_statement : PRINT expression NEWLINE"""
+        print(f"DEBUG: Parsing print statement at line {self.current_token.line}")
         self.eat(TokenType.PRINT)
         expression = self.expression()
-        self.eat_newline_or_eof()
+        
+        # Only consume newline if present
+        if self.current_token.type == TokenType.NEWLINE:
+            print(f"DEBUG: Found NEWLINE after print statement")
+            self.eat(TokenType.NEWLINE)
+        # Don't consume DEDENT here - let it be handled by the outer parser
+        elif self.current_token.type == TokenType.DEDENT:
+            print(f"DEBUG: Found DEDENT after print statement - not consuming it")
+        elif self.current_token.type == TokenType.EOF:
+            print(f"DEBUG: Found EOF after print statement")
+        else:
+            self.error(f"Expected newline, EOF, or DEDENT after print statement, got {self.current_token.type}")
+        
         return PrintStatement(expression)
     
     def input_statement(self):
@@ -669,6 +689,7 @@ class Parser:
         """
         for_loop : LOOP IDENTIFIER IN expression COLON NEWLINE INDENT statement_list DEDENT
         """
+        print("DEBUG: Parsing for_loop starting")
         self.eat(TokenType.LOOP)
         variable = self.current_token.value
         self.eat(TokenType.IDENTIFIER)
@@ -677,28 +698,54 @@ class Parser:
         self.eat(TokenType.COLON)
         self.eat(TokenType.NEWLINE)
         
-        # Make INDENT optional to handle files with tabs or inconsistent indentation
+        # Check for indentation
+        expected_indented = False
         if self.current_token.type == TokenType.INDENT:
+            print(f"DEBUG: Found INDENT token")
             self.eat(TokenType.INDENT)
+            expected_indented = True
         else:
-            print(f"Warning: Expected indentation after for loop declaration at line {self.current_token.line}")
+            print(f"WARNING: Expected indentation after loop declaration at line {self.current_token.line}")
         
+        # Parse statements for loop body until we find a DEDENT or EOF token
+        print("DEBUG: Parsing loop body statements")
         body = []
-        # Process statements until we encounter a dedent or tokens that might indicate end of loop
-        loop_end_tokens = [TokenType.DEDENT, TokenType.EOF, TokenType.VAR, TokenType.FUNC]
         
-        while self.current_token.type not in loop_end_tokens:
-            # Skip unexpected tokens - more lenient parsing
-            if self.current_token.type in (TokenType.INDENT, TokenType.NEWLINE):
-                self.eat(self.current_token.type)
+        # Keep processing statements until we hit a DEDENT
+        while self.current_token.type != TokenType.DEDENT and self.current_token.type != TokenType.EOF:
+            # Skip newlines within the loop body
+            if self.current_token.type == TokenType.NEWLINE:
+                print(f"DEBUG: Skipping newline in loop body")
+                self.eat(TokenType.NEWLINE)
                 continue
                 
-            body.append(self.statement())
+            # Check if we're about to process a statement that's outside the loop body
+            # If the current token is not indented but we expected indentation, it's outside the loop
+            if expected_indented and self.current_token.type == TokenType.PRINT and self.current_token.column <= 4:
+                print(f"DEBUG: Found statement with lower indentation level ({self.current_token.column}), ending loop body")
+                break
+            
+            # Process the next statement
+            print(f"DEBUG: Processing loop body statement with token: {self.current_token}")
+            stmt = self.statement()
+            body.append(stmt)
+            print(f"DEBUG: Added statement of type {stmt.__class__.__name__} to loop body")
+            
+            # Handle optional newlines between statements
+            while self.current_token.type == TokenType.NEWLINE:
+                print(f"DEBUG: Skipping newline after loop body statement")
+                self.eat(TokenType.NEWLINE)
         
-        # Make DEDENT optional
+        # We should now be at a DEDENT token or have broken out due to indentation change
         if self.current_token.type == TokenType.DEDENT:
+            print(f"DEBUG: Found DEDENT token at end of loop body")
             self.eat(TokenType.DEDENT)
+        else:
+            print(f"DEBUG: No DEDENT token found at end of loop body, found {self.current_token} instead")
+            # Don't consume the token here, as it belongs to the outer scope
         
+        print(f"DEBUG: Finished parsing for_loop, body has {len(body)} statements")
+        print(f"DEBUG: Current token after loop parsing: {self.current_token}")
         return ForLoop(variable, iterable, body)
 
     def parse(self):

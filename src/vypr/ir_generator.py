@@ -257,6 +257,7 @@ class IRGenerator:
         self.add_instruction(LabelIR(end_label))
 
     def visit_ForLoop(self, node):
+        print(f"DEBUG IR: Processing ForLoop with variable {node.variable}")
         # Get the iterable expression
         iterable = self.visit(node.iterable)
         
@@ -264,14 +265,19 @@ class IRGenerator:
         loop_var = node.variable
         
         # Use ForLoopStartIR and ForLoopEndIR for cleaner code generation
+        print(f"DEBUG IR: Adding ForLoopStartIR for {loop_var} in {iterable}")
         self.add_instruction(ForLoopStartIR(loop_var, iterable))
         
         # Process the loop body
-        for statement in node.body:
+        print(f"DEBUG IR: Processing loop body with {len(node.body)} statements")
+        for i, statement in enumerate(node.body):
+            print(f"DEBUG IR: Processing body statement {i}: {statement.__class__.__name__}")
             self.visit(statement)
         
         # Add loop footer
+        print(f"DEBUG IR: Adding ForLoopEndIR (end of loop {loop_var})")
         self.add_instruction(ForLoopEndIR())
+        print(f"DEBUG IR: Finished processing ForLoop")
     
     def visit_FunctionDeclaration(self, node):
         # Debug print

@@ -123,7 +123,8 @@ class CodeGenerator:
                             inner_instr = func.instructions[j]
                             # Don't recursively handle more jumps - just the immediate code
                             if not isinstance(inner_instr, (JumpIR, ConditionalJumpIR, LabelIR)):
-                                self._process_single_instruction(inner_instr, code_lines, indent_level)
+                                new_indent_level = self._process_single_instruction(inner_instr, code_lines, indent_level)
+                                indent_level = new_indent_level
                             j += 1
                         
                         # End of true block, back to if level to add else
@@ -143,7 +144,8 @@ class CodeGenerator:
                             inner_instr = func.instructions[j]
                             # Don't recursively handle more jumps - just the immediate code
                             if not isinstance(inner_instr, (JumpIR, ConditionalJumpIR, LabelIR)):
-                                self._process_single_instruction(inner_instr, code_lines, indent_level)
+                                new_indent_level = self._process_single_instruction(inner_instr, code_lines, indent_level)
+                                indent_level = new_indent_level
                             j += 1
                         
                         # Back to normal indent level
@@ -173,7 +175,8 @@ class CodeGenerator:
                             inner_instr = func.instructions[j]
                             # Don't handle more jumps - just the immediate code
                             if not isinstance(inner_instr, (JumpIR, ConditionalJumpIR, LabelIR)):
-                                self._process_single_instruction(inner_instr, code_lines, indent_level)
+                                new_indent_level = self._process_single_instruction(inner_instr, code_lines, indent_level)
+                                indent_level = new_indent_level
                             j += 1
                         
                         # Back to normal indent level
@@ -191,7 +194,8 @@ class CodeGenerator:
                 
             # Process regular instructions
             elif not isinstance(instr, (LabelIR, JumpIR, ConditionalJumpIR)):
-                self._process_single_instruction(instr, code_lines, indent_level)
+                new_indent_level = self._process_single_instruction(instr, code_lines, indent_level)
+                indent_level = new_indent_level
             
             i += 1
         
@@ -239,6 +243,8 @@ class CodeGenerator:
             indent_level -= 1
             # Make sure we don't go below 1
             indent_level = max(1, indent_level)
+        
+        return indent_level
     
     def generate_function_code(self, func):
         """This method is no longer used but kept for compatibility"""

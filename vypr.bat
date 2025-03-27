@@ -12,6 +12,7 @@ if "%version%" == "10.0" (
 
 set KEEP_FLAG=
 set VERBOSE_FLAG=
+set DEBUG_FLAG=
 set OUTPUT_FILE=
 set INPUT_FILE=
 set CURRENT_DIR=%CD%
@@ -26,6 +27,11 @@ if /i "%~1"=="-keep" (
 )
 if /i "%~1"=="-verbose" (
     set VERBOSE_FLAG=-verbose
+    shift
+    goto :parse_args
+)
+if /i "%~1"=="-debug" (
+    set DEBUG_FLAG=-debug
     shift
     goto :parse_args
 )
@@ -44,7 +50,7 @@ goto :parse_args
 :run_compiler
 if "!INPUT_FILE!"=="" (
     echo Error: No input file specified.
-    echo Usage: vypr filename.vy [-keep] [-verbose] [-o output_filename]
+    echo Usage: vypr filename.vy [-keep] [-verbose] [-debug] [-o output_filename]
     exit /b 1
 )
 
@@ -56,6 +62,6 @@ echo Using compiler at: %COMPILER_PATH%
 echo Input file: %INPUT_FILE%
 
 REM Run the Python compiler with the parsed arguments
-python "%COMPILER_PATH%" "%INPUT_FILE%" !KEEP_FLAG! !VERBOSE_FLAG! !OUTPUT_FILE!
+python "%COMPILER_PATH%" "%INPUT_FILE%" !KEEP_FLAG! !VERBOSE_FLAG! !DEBUG_FLAG! !OUTPUT_FILE!
 
 exit /b %ERRORLEVEL% 

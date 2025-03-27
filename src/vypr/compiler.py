@@ -10,36 +10,49 @@ class Compiler:
     def __init__(self):
         self.last_error = None
     
-    def compile(self, source_code, output_filename=None, verbose=False):
+    def compile(self, source_code, output_filename=None, verbose=False, debug=False):
         try:
-            # Step 1: Lexical Analysis
-            if verbose:
-                print("\n" + "="*80)
-                print(" "*30 + "PHASE 1: LEXICAL ANALYSIS" + " "*30)
-                print("="*80)
+            # Set up logging based on verbosity level
+            log_level = 2 if verbose else 1  # 0=none, 1=basic, 2=verbose
+            debug_mode = debug  # Enable extra debug output
+            
+            # PHASE 1: Lexical Analysis
+            if log_level >= 1:
+                print("\n" + "=" * 80)
+                print(" " * 30 + "PHASE 1: LEXICAL ANALYSIS")
+                print("=" * 80)
                 print("Starting lexical analysis...")
-                print("Tokenizing source code...")
-                
+            
             lexer = Lexer(source_code)
             tokens = lexer.tokenize()
             
-            if verbose:
-                print("\nTokens generated:")
-                token_count = len(tokens)
-                print(f"  Total tokens: {token_count}")
-                token_types = {}
+            if log_level >= 2 or debug_mode:
+                print("Tokenizing source code...")
+                
+                # Print tokens information
+                token_counts = {}
                 for token in tokens:
-                    if token.type in token_types:
-                        token_types[token.type] += 1
+                    token_type = token.type
+                    if token_type in token_counts:
+                        token_counts[token_type] += 1
                     else:
-                        token_types[token.type] = 1
+                        token_counts[token_type] = 1
+                
+                print("\nTokens generated:")
+                print(f"  Total tokens: {len(tokens)}")
                 print("  Token breakdown:")
-                for token_type, count in token_types.items():
+                for token_type, count in token_counts.items():
                     print(f"    {token_type}: {count}")
+                    
+                # Display all tokens for debugging if enabled
+                if debug_mode:
+                    print("\nTokens in sequence:")
+                    for i, token in enumerate(tokens):
+                        print(f"  {i}: {token}")
+            
+            if log_level >= 1:
                 print("\nLexical analysis completed successfully.")
-                print("-"*80)
-            else:
-                print("Lexical analysis completed successfully.")
+                print("-" * 80)
             
             # Step 2: Syntax Analysis
             if verbose:

@@ -374,15 +374,18 @@ class Lexer:
                     if indent > indent_stack[-1]:
                         # Increased indentation
                         indent_stack.append(indent)
+                        print(f"DEBUG LEXER: Adding INDENT token at line {line_num}, indent level {indent}")
                         tokens.append(Token(TokenType.INDENT, indent, line_num, 1))
                     elif indent < indent_stack[-1]:
                         # Decreased indentation - may need multiple DEDENT tokens
                         while indent < indent_stack[-1]:
                             indent_stack.pop()
+                            print(f"DEBUG LEXER: Adding DEDENT token at line {line_num}, indent level now {indent_stack[-1]}")
                             tokens.append(Token(TokenType.DEDENT, None, line_num, 1))
                         
                         # Check for invalid indentation
                         if indent != indent_stack[-1]:
+                            print(f"ERROR LEXER: Inconsistent indentation at line {line_num}, got {indent} expected {indent_stack[-1]}")
                             raise Exception(f"Inconsistent indentation at line {line_num}")
                     
                     # No longer at start of line
@@ -399,12 +402,23 @@ class Lexer:
                 self.skip_comment()
                 continue
             
-            # Handle newlines
+            # Handle newlines (which also affect indentation)
             if self.current_char == '\n':
-                tokens.append(Token(TokenType.NEWLINE, None, line_num, self.column))
+                self.line += 1
+                self.column = 1
                 self.advance()
-                line_num += 1
-                line_start = True  # Next token will be at the start of a line
+                
+                # Skip consecutive newlines, but count each one
+                while self.current_char == '\n':
+                    self.line += 1
+                    self.advance()
+                
+                # Add the NEWLINE token
+                tokens.append(Token(TokenType.NEWLINE, '\n', line_num, self.column))
+                line_num = self.line
+                
+                # Next token will be at the start of a line
+                line_start = True
                 continue
             
             # After processing indentation and newlines, we're no longer at line start
