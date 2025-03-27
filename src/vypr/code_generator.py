@@ -121,8 +121,14 @@ class CodeGenerator:
                                 continue
                                 
                             inner_instr = func.instructions[j]
+                            # Special case: handle nested conditional jumps in the true branch
+                            if isinstance(inner_instr, ConditionalJumpIR):
+                                # Recursively process the nested if
+                                nested_indent = "    " * indent_level
+                                self._process_nested_if(inner_instr, func, code_lines, indent_level, label_positions)
+                                j = self._find_next_instruction_after_nested_if(j, func.instructions, label_positions)
                             # Don't recursively handle more jumps - just the immediate code
-                            if not isinstance(inner_instr, (JumpIR, ConditionalJumpIR, LabelIR)):
+                            elif not isinstance(inner_instr, (JumpIR, LabelIR)):
                                 new_indent_level = self._process_single_instruction(inner_instr, code_lines, indent_level)
                                 indent_level = new_indent_level
                             j += 1
@@ -142,8 +148,14 @@ class CodeGenerator:
                         j = false_pos + 1  # Skip the label
                         while j < end_pos:
                             inner_instr = func.instructions[j]
+                            # Special case: handle nested conditional jumps in the else branch
+                            if isinstance(inner_instr, ConditionalJumpIR):
+                                # Recursively process the nested if
+                                nested_indent = "    " * indent_level
+                                self._process_nested_if(inner_instr, func, code_lines, indent_level, label_positions)
+                                j = self._find_next_instruction_after_nested_if(j, func.instructions, label_positions)
                             # Don't recursively handle more jumps - just the immediate code
-                            if not isinstance(inner_instr, (JumpIR, ConditionalJumpIR, LabelIR)):
+                            elif not isinstance(inner_instr, (JumpIR, LabelIR)):
                                 new_indent_level = self._process_single_instruction(inner_instr, code_lines, indent_level)
                                 indent_level = new_indent_level
                             j += 1
@@ -266,3 +278,117 @@ class CodeGenerator:
         # Currently no runtime support functions are needed
         # Return None or a string with runtime functions code
         return None
+
+    def _process_nested_if(self, instr, func, code_lines, indent_level, label_positions):
+        """Process a nested if statement and add to code_lines"""
+        indent = "    " * indent_level
+        
+        if instr.false_label:  # nested if-else structure
+            true_pos = label_positions.get(instr.true_label)
+            false_pos = label_positions.get(instr.false_label)
+            
+            if true_pos is not None and false_pos is not None:
+                # Find the end label
+                end_label = None
+                for j in range(false_pos - 1, true_pos, -1):
+                    if isinstance(func.instructions[j], JumpIR):
+                        end_label = func.instructions[j].label
+                        break
+                
+                # Write the if condition
+                code_lines.append(f"{indent}if {instr.condition}:")
+                
+                # Process the true branch with increased indent
+                new_indent_level = indent_level + 1
+                j = true_pos + 1  # Skip the label
+                while j < false_pos:
+                    # Skip jumps to end
+                    if isinstance(func.instructions[j], JumpIR) and func.instructions[j].label == end_label:
+                        j += 1
+                        continue
+                    
+                    inner_instr = func.instructions[j]
+                    # Handle nested ifs recursively
+                    if isinstance(inner_instr, ConditionalJumpIR):
+                        self._process_nested_if(inner_instr, func, code_lines, new_indent_level, label_positions)
+                        j = self._find_next_instruction_after_nested_if(j, func.instructions, label_positions)
+                    elif not isinstance(inner_instr, (JumpIR, LabelIR)):
+                        # Add the instruction with proper indentation
+                        self._format_instruction(inner_instr, code_lines, "    " * new_indent_level)
+                        j += 1
+                    else:
+                        j += 1
+                
+                # Write the else clause
+                code_lines.append(f"{indent}else:")
+                
+                # Process the false branch with increased indent
+                j = false_pos + 1  # Skip the label
+                end_pos = len(func.instructions)
+                if end_label and end_label in label_positions:
+                    end_pos = label_positions[end_label]
+                
+                while j < end_pos:
+                    inner_instr = func.instructions[j]
+                    # Handle nested ifs recursively in the else branch
+                    if isinstance(inner_instr, ConditionalJumpIR):
+                        self._process_nested_if(inner_instr, func, code_lines, new_indent_level, label_positions)
+                        j = self._find_next_instruction_after_nested_if(j, func.instructions, label_positions)
+                    elif not isinstance(inner_instr, (JumpIR, LabelIR)):
+                        # Add the instruction with proper indentation
+                        self._format_instruction(inner_instr, code_lines, "    " * new_indent_level)
+                        j += 1
+                    else:
+                        j += 1
+    
+    def _format_instruction(self, instr, code_lines, indent):
+        """Format a single instruction with proper indentation"""
+        if isinstance(instr, BinaryOpIR):
+            code_lines.append(f"{indent}{instr.dest} = {instr.left} {instr.op} {instr.right}")
+        elif isinstance(instr, UnaryOpIR):
+            code_lines.append(f"{indent}{instr.dest} = {instr.op}{instr.operand}")
+        elif isinstance(instr, AssignIR):
+            code_lines.append(f"{indent}{instr.dest} = {instr.value}")
+        elif isinstance(instr, ReturnIR):
+            if instr.value:
+                code_lines.append(f"{indent}return {instr.value}")
+            else:
+                code_lines.append(f"{indent}return")
+        elif isinstance(instr, CallIR):
+            args_str = ", ".join(map(str, instr.args))
+            if instr.dest:
+                code_lines.append(f"{indent}{instr.dest} = {instr.function}({args_str})")
+            else:
+                code_lines.append(f"{indent}{instr.function}({args_str})")
+        elif isinstance(instr, PrintIR):
+            code_lines.append(f"{indent}print({instr.value})")
+        elif isinstance(instr, InputIR):
+            code_lines.append(f"{indent}{instr.dest} = input()")
+    
+    def _find_next_instruction_after_nested_if(self, curr_pos, instructions, label_positions):
+        """Find the next instruction position after a nested if structure"""
+        # Start from the current conditional jump
+        if not isinstance(instructions[curr_pos], ConditionalJumpIR):
+            return curr_pos + 1
+        
+        cond_jump = instructions[curr_pos]
+        
+        # If this is an if-else, find the end label
+        if cond_jump.false_label:
+            true_pos = label_positions.get(cond_jump.true_label)
+            false_pos = label_positions.get(cond_jump.false_label)
+            
+            if true_pos is not None and false_pos is not None:
+                # Find the end label
+                end_label = None
+                for j in range(false_pos - 1, true_pos, -1):
+                    if isinstance(instructions[j], JumpIR):
+                        end_label = instructions[j].label
+                        break
+                
+                # Find the position of the end label
+                if end_label and end_label in label_positions:
+                    return label_positions[end_label] + 1
+        
+        # If we couldn't determine the end, just return the next position
+        return curr_pos + 1

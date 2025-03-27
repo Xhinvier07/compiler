@@ -1,8 +1,12 @@
-print "Hello World!"
+var a = 4
 
-loop a in [1, 2, 3, 4, 5]:
-    loop b in ["a", "b", "c", "d", "e"]:
-        print "Beep! " ^ b
-    print "Boop! " ^ a
-
-print "Done looping!"
+if a == 2:
+    print "I should print"
+else:
+    if a == 3:
+        print "Well no"
+    else:
+        if a == 4:
+            print "Well yes!"
+        else:
+            print "Fuck"

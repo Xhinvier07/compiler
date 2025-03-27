@@ -181,12 +181,25 @@ class IRGenerator:
         return node.variable.name
     
     def visit_IfStatement(self, node):
+        # Print debug information about the if statement
+        print(f"DEBUG IR: Processing IfStatement")
+        
+        # Generate a distinct variable for the condition
         condition = self.visit(node.condition)
         true_label = self.new_label()
         end_label = self.new_label()
         
         if node.else_body:
+            print(f"DEBUG IR: If statement has else body with {len(node.else_body)} statements")
             false_label = self.new_label()
+            
+            # Check if this is a nested if-else chain
+            nested_if_in_else = False
+            if len(node.else_body) == 1 and hasattr(node.else_body[0], '__class__') and node.else_body[0].__class__.__name__ == 'IfStatement':
+                nested_if_in_else = True
+                print(f"DEBUG IR: Found nested if statement in else body")
+            
+            # Generate the conditional jump
             self.add_instruction(ConditionalJumpIR(condition, true_label, false_label))
             
             # True branch
@@ -195,11 +208,21 @@ class IRGenerator:
                 self.visit(statement)
             self.add_instruction(JumpIR(end_label))
             
-            # False branch
+            # False branch (else block)
             self.add_instruction(LabelIR(false_label))
-            for statement in node.else_body:
-                self.visit(statement)
+            
+            if nested_if_in_else:
+                # Process the nested if statement
+                nested_if = node.else_body[0]
+                self.visit(nested_if)
+            else:
+                # Normal else block
+                for statement in node.else_body:
+                    self.visit(statement)
+            
         else:
+            # If without else
+            print(f"DEBUG IR: If statement has no else body")
             self.add_instruction(ConditionalJumpIR(condition, true_label))
 
             # True branch

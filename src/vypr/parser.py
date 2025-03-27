@@ -278,29 +278,41 @@ class Parser:
         
         else_body = None
         if self.current_token.type == TokenType.ELSE:
+            print(f"DEBUG: Found ELSE token at line {self.current_token.line}")
             self.eat(TokenType.ELSE)
             self.eat(TokenType.COLON)
             self.eat(TokenType.NEWLINE)
             
             # Make INDENT optional for else block too
             expected_else_indent = False
+            current_indent_level = 0
             if self.current_token.type == TokenType.INDENT:
+                current_indent_level = self.current_token.value if hasattr(self.current_token, 'value') else 4
                 self.eat(TokenType.INDENT)
                 expected_else_indent = True
+                print(f"DEBUG: Found explicit INDENT token for else block, level: {current_indent_level}")
             else:
                 print(f"Warning: Expected indentation after else statement at line {self.current_token.line}")
             
             else_body = []
-            # Process statements until we encounter end of else block tokens
-            else_end_tokens = [TokenType.DEDENT, TokenType.EOF, TokenType.VAR, TokenType.FUNC, TokenType.IF]
             
-            while self.current_token.type not in else_end_tokens:
-                # Skip unexpected tokens
-                if self.current_token.type in (TokenType.INDENT, TokenType.NEWLINE):
-                    self.eat(self.current_token.type)
-                    continue
+            # Now check if the first token after INDENT is an IF - this would be a nested if statement
+            if self.current_token.type == TokenType.IF:
+                print(f"DEBUG: Found nested if statement as first statement in else block")
+                nested_if = self.if_statement()
+                else_body.append(nested_if)
+            else:
+                # Process statements until we encounter end of else block tokens
+                else_end_tokens = [TokenType.DEDENT, TokenType.EOF]
+                
+                while self.current_token.type not in else_end_tokens:
+                    # Skip unexpected tokens
+                    if self.current_token.type in (TokenType.NEWLINE,):
+                        self.eat(TokenType.NEWLINE)
+                        continue
                     
-                else_body.append(self.statement())
+                    # Process standard statements
+                    else_body.append(self.statement())
             
             # Make DEDENT optional
             if self.current_token.type == TokenType.DEDENT and expected_else_indent:
